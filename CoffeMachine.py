@@ -1,10 +1,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
-class Beverage:
+class Beverage(ABC):
+    @abstractmethod
     def cost(self):
         pass
 
+    @abstractmethod
     def description(self):
         pass
 
@@ -26,9 +28,11 @@ class CondimentDecorator(Beverage):
     def __init__(self, beverage):
         self.beverage = beverage
 
+    @abstractmethod
     def cost(self):
         pass
 
+    @abstractmethod
     def description(self):
         pass
 
@@ -52,6 +56,38 @@ class SoyMilk(CondimentDecorator):
 
     def description(self):
         return self.beverage.description() + ", Soy"
+    
+class BeverageFactory(ABC):
+    @abstractmethod
+    def factory_method(self):
+        pass
+
+class CoffeeMaker(BeverageFactory):
+    def __init__(self):
+        self.menu = ""
+    def factory_method(self,menu):
+        match menu:
+            case "HouseBlend":
+                self.bv = HouseBlend()
+            case "HouseBlend, Mocha":
+                self.bv = HouseBlend()
+                self.bv = Mocha(self.bv)
+            case "HouseBlend double Mocha":
+                self.bv = HouseBlend()
+                self.bv = Mocha(self.bv)
+                self.bv = Mocha(self.bv)
+
+            case "DarkRoast":
+                self.bv = DarkRoast()
+            case "DarkRoast, Mocha":
+                self.bv = DarkRoast()
+                self.bv = Mocha(self.bv)
+            case "DarkRoast double Mocha":
+                self.bv = DarkRoast()
+                self.bv = Mocha(self.bv)
+                self.bv = Mocha(self.bv)
+            case _:
+                self.bv = HouseBlend()
 
 
 class State(ABC):
@@ -283,46 +319,32 @@ class CoffeeMachine:
             return True
 
     def orderBeverage(self , beverage):
-        if beverage == HouseBlend and  self.houseBlend >= 20:
-            self.state.orderBeverage(beverage)
-            self.houseBlend -= 20
-        elif beverage == DarkRoast and self.darkRoast >= 20:
-            self.state.orderBeverage(beverage)
-            self.darkRoast -= 20
-        elif self.checkOutOfMaterial():
-            print("all Beverage is SoldOut")
-            self.state = NoMaterialState
-        else:
-            print("Unknown beverage type or out of that beverage")
+        match beverage:
+            case "HouseBlend":
+                self.state.orderBeverage("HouseBlend")
+                self.houseBlend -= 20
+            case "HouseBlend, Mocha":
+                self.state.orderBeverage("HouseBlend, Mocha")
+                self.darkRoast -= 20
+                self.mocha -=50
+            case "HouseBlend double Mocha":
+                self.state.orderBeverage("HouseBlend double Mocha")
+                self.darkRoast -= 20
+                self.mocha -=100
+            case _:
+                self.state.orderBeverage("HouseBlend")
+                self.darkRoast -= 20
 
     def setBeverage(self , beverage):
-        self.beverage = beverage()
+        cofee = CoffeeMaker()
+        cofee.factory_method(beverage)
+        self.beverage = cofee.bv
+        
         print("You Beverage is ", self.beverage.description())
-
-    def orderDecorator(self , decorator):
-        if decorator == Milk and self.milk >= 200:
-            self.state.orderDecorator(decorator)
-            self.milk -= 200
-        elif decorator == SoyMilk and self.soyMilk >= 200:
-            self.state.orderDecorator(decorator)
-            self.soyMilk -= 200
-        elif decorator == Mocha and self.mocha >= 50:
-            self.state.orderDecorator(decorator)
-            self.mocha -= 50
-        elif self.checkOutOfMaterial():
-            print("all Decorator is SoldOut")
-            self.state = NoMaterialState
-        else:
-            print("Unknown decorator type or out ot that decorator")
 
     def moneyCheck(self, money):
         if self.moneyCount >= money:
             self.setState(self.haveEnoughMoneyState)
-
-
-    def setDecorator(self , decorator):
-        self.beverage = decorator(self.beverage)
-        print("you add ",self.beverage.__class__.__name__, " now your is " ,self.beverage.description())
     
     def summaryOrder(self):
         self.state.summaryOrder()
@@ -346,12 +368,15 @@ class CoffeeMachine:
     def setMoney(self, money):
         self.moneyCount += money
     
+
+# coffe1 = CoffeeMaker()
+# coffe1.factory_method("HouseBlend double Mocha")
+# print(coffe1.bv.description())   
+
 coffeeMachine1 = CoffeeMachine()
-coffeeMachine1.orderBeverage(DarkRoast)
-coffeeMachine1.orderDecorator(Milk)
-coffeeMachine1.orderDecorator(SoyMilk)
+coffeeMachine1.orderBeverage("HouseBlend double Mocha")
 coffeeMachine1.summaryOrder()
-coffeeMachine1.insertMoney(10)
+coffeeMachine1.insertMoney(100)
 print(coffeeMachine1.state)
 coffeeMachine1.releaseOrder()
 coffeeMachine1.releaseOrder()
